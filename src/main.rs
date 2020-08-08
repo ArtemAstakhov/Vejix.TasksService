@@ -21,7 +21,7 @@ mod routes;
 
 #[get("/")]
 fn index() -> &'static str {
-    "Hello from vejix user service!"
+    "Hello from vejix tasks service!"
 }
 
 #[tokio::main]
@@ -49,6 +49,17 @@ async fn main() -> Result<(), Error> {
         routes::tasks::delete,
         routes::tasks::reorder,
         routes::tasks::update
+      ])
+      .mount("/api/v1/checklists", routes![
+        routes::checklists::read,
+        routes::checklists::create,
+        routes::checklists::update,
+        routes::checklists::delete,
+      ])
+      .mount("/api/v1/checklist-items", routes![
+        routes::checklist_items::read,
+        routes::checklist_items::create,
+        routes::checklist_items::update,
       ])
       .launch();
 

@@ -2,8 +2,6 @@ use diesel;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use chrono::NaiveDateTime;
-use std::time::Duration;
-use std::thread;
 
 use crate::schema::tasks;
 // use super::user::User;

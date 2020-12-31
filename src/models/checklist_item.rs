@@ -1,9 +1,10 @@
+use serde::{Serialize, Deserialize};
 use diesel;
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
 use chrono::NaiveDateTime;
 
 use crate::schema::checklist_items;
+use crate::db;
 
 #[derive(AsChangeset, Serialize, Deserialize, Queryable)]
 pub struct ChecklistItem {
@@ -26,38 +27,38 @@ pub struct NewChecklistItem {
 }
 
 impl ChecklistItem {
-    pub fn create(checklist_item: NewChecklistItem, connection: &PgConnection) -> ChecklistItem {
+    pub fn create(checklist_item: NewChecklistItem) -> Result<ChecklistItem, diesel::result::Error> {
+      let connection = db::connection();
+
       diesel::insert_into(checklist_items::table)
         .values(&checklist_item)
-        .execute(connection)
-        .expect("Error creating new checklist item");
-
-        checklist_items::table.order(checklist_items::id.desc()).first(connection).unwrap()
+        .get_result(&*connection)
     }
 
-    pub fn read(checklist_id: i32, connection: &PgConnection) -> Vec<ChecklistItem> {
+    pub fn read(checklist_id: i32) -> Result<Vec<ChecklistItem>, diesel::result::Error> {
+      let connection = db::connection();
+
       checklist_items::table
         .filter(checklist_items::checklist_id.eq(checklist_id))
         // .order(checklists::order)
-        .load::<ChecklistItem>(connection)
-        .unwrap()
+        .load::<ChecklistItem>(&*connection)
     }
 
-    pub fn update(id: i32, checklist_item: ChecklistItem, connection: &PgConnection) -> ChecklistItem {
+    pub fn update(id: i32, checklist_item: ChecklistItem) -> Result<ChecklistItem, diesel::result::Error> {
+      let connection = db::connection();
+
       diesel::update(
         checklist_items::table.filter(checklist_items::id.eq(id))
       )
         .set(&checklist_item)
-        .execute(connection)
-        .expect("Error updating item");
-
-        ChecklistItem::find(id, connection)
+        .get_result(&*connection)
     }
 
-    pub fn find(id: i32, connection: &PgConnection) -> ChecklistItem {
+    pub fn find(id: i32) -> Result<ChecklistItem, diesel::result::Error> {
+      let connection = db::connection();
+
       checklist_items::table
         .find(id)
-        .first(connection)
-        .unwrap()
+        .first(&*connection)
     }
 }

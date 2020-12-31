@@ -13,7 +13,7 @@ COPY migrations ./migrations
 COPY src ./src
 COPY diesel.toml Rocket.toml ./
 
-ENV DATABASE_URL=postgresql://postgres:postgres@vejix.ce4pcrek9nhy.us-east-1.rds.amazonaws.com:5432/vejix_tasks
+ENV DATABASE_URL=postgresql://postgres:postgres_admin@kaizen.cqv53ihwwu1o.us-east-1.rds.amazonaws.com:5432/kaizen_production
 
 RUN cargo install diesel_cli --no-default-features --features postgres
 RUN diesel setup
@@ -33,8 +33,9 @@ WORKDIR /project
 COPY diesel.toml Rocket.toml ./
 COPY --from=build /project/target/release/tasks_service .
 
-EXPOSE 30081
+EXPOSE 30083
 
-ENV DATABASE_URL=postgresql://postgres:postgres@vejix.ce4pcrek9nhy.us-east-1.rds.amazonaws.com:5432/vejix_tasks
+ENV DATABASE_URL=postgresql://postgres:postgres_admin@kaizen.cqv53ihwwu1o.us-east-1.rds.amazonaws.com:5432/kaizen_production
+ENV TOKEN_SECRET=secret
 
 CMD ["./tasks_service"]

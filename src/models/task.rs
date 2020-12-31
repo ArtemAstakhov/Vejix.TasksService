@@ -1,9 +1,10 @@
+use serde::{Serialize, Deserialize};
 use diesel;
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
 use chrono::NaiveDateTime;
 
 use crate::schema::tasks;
+use crate::db;
 // use super::user::User;
 
 #[derive(AsChangeset, Serialize, Deserialize, Queryable)]
@@ -35,65 +36,69 @@ pub struct NewTask {
 }
 
 impl Task {
-    pub fn create(task: NewTask, connection: &PgConnection) -> Task {
+    pub fn create(task: NewTask) -> Result<Task, diesel::result::Error> {
+      let connection = db::connection();
+
       diesel::insert_into(tasks::table)
         .values(&task)
-        .execute(connection)
-        .expect("Error creating new task");
-
-        tasks::table.order(tasks::id.desc()).first(connection).unwrap()
+        .get_result(&*connection)
     }
 
-    pub fn read(user_id: i32, connection: &PgConnection) -> Vec<Task> {
+    pub fn read(user_id: i32) -> Result<Vec<Task>, diesel::result::Error> {
+      let connection = db::connection();
+
       tasks::table
         .filter(tasks::user_id.eq(user_id))
         .order(tasks::order)
-        .load::<Task>(connection)
-        .unwrap()
+        .load::<Task>(&*connection)
     }
 
-    pub fn update(id: i32, user_id: i32, task: Task, connection: &PgConnection) -> Task {
-        diesel::update(
-          tasks::table.filter(tasks::user_id.eq(user_id))
-            .filter(tasks::id.eq(id))
-        )
-          .set(&task)
-          .execute(connection)
-          .expect("Error updating task");
+    pub fn update(user_id: i32, task: Task) -> Result<Task, diesel::result::Error> {
+      let connection = db::connection();
 
-        // let uncompleted_tasks: i64 = tasks::table
-        //   .filter(tasks::user_id.eq(user_id))
-        //   .filter(tasks::completed.eq(false))
-        //   .count()
-        //   .get_result(connection)
-        //   .unwrap();
+      diesel::update(
+        tasks::table.filter(tasks::user_id.eq(user_id))
+          .filter(tasks::id.eq(task.id))
+      )
+        .set(&task)
+        .get_result(&*connection)
 
-        // if uncompleted_tasks == 0 {
-        //   let mut user = User::find(user_id, connection);
-        //   let increase: i32 = 100;
+      // let uncompleted_tasks: i64 = tasks::table
+      //   .filter(tasks::user_id.eq(user_id))
+      //   .filter(tasks::completed.eq(false))
+      //   .count()
+      //   .get_result(connection)
+      //   .unwrap();
 
-        //   user.experience = user.experience + increase;
-        //   User::update(user, connection);
-        // }
+      // if uncompleted_tasks == 0 {
+      //   let mut user = User::find(user_id, connection);
+      //   let increase: i32 = 100;
 
-        Task::find(id, connection)
+      //   user.experience = user.experience + increase;
+      //   User::update(user, connection);
+      // }
     }
 
-    pub fn find(id: i32, connection: &PgConnection) -> Task {
+    pub fn find(id: i32) -> Result<Task, diesel::result::Error> {
+      let connection = db::connection();
+
       tasks::table
         .find(id)
-        .first(connection)
-        .unwrap()
+        .first(&*connection)
     }
 
-    pub fn delete(id: i32, connection: &PgConnection) -> bool {
-      diesel::delete(tasks::table.find(id)).execute(connection).is_ok()
+    pub fn delete(id: i32) -> bool {
+      let connection = db::connection();
+
+      diesel::delete(tasks::table.find(id)).execute(&*connection).is_ok()
     }
 
-    pub fn reorder(id: i32, new_order: i32, connection: &PgConnection) -> bool {
+    pub fn reorder(id: i32, new_order: i32) -> bool {
+      let connection = db::connection();
+
       diesel::update(tasks::table.find(id))
         .set(tasks::order.eq(new_order))
-        .execute(connection)
+        .execute(&*connection)
         .is_ok()
     }
 }

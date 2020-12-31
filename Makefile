@@ -1,7 +1,5 @@
-export DATABASE_URL=postgresql://postgres:postgres@vejix.ce4pcrek9nhy.us-east-1.rds.amazonaws.com:5432/vejix_tasks
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/local
+export TOKEN_SECRET=secret
 
 watch:
 	diesel migration run && cargo watch -x "run"
-
-setup:
-	diesel setup

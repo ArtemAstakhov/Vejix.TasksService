@@ -1,6 +1,10 @@
-use rocket::request::{self, FromRequest};
-use rocket::{Request, Outcome};
+use std::env;
+use serde::{Serialize, Deserialize};
 use jsonwebtoken::{decode, Validation};
+use actix_web::{dev, Error, HttpRequest, FromRequest, http};
+use futures::future::{ok, Ready};
+
+use crate::dto::error::Errors;
 
 #[derive(Serialize, Deserialize)]
 pub struct UserToken {
@@ -9,27 +13,40 @@ pub struct UserToken {
 }
 
 fn get_token_data(token: &str) -> UserToken {
-  decode::<UserToken>(&token, "secret".as_ref(), &Validation {validate_exp: false, ..Default::default()}).unwrap().claims
+  decode::<UserToken>(
+    &token,
+    env::var("TOKEN_SECRET").unwrap().as_ref(),
+    &Validation {validate_exp: false, ..Default::default()}).unwrap().claims
 }
 
-impl<'a, 'r> FromRequest<'a, 'r> for UserToken {
-    type Error = ();
+impl FromRequest for UserToken {
+  type Error = Error;
+  type Future = Ready<Result<Self, Self::Error>>;
+  type Config = ();
 
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let mut auth_token: Option<String> = None;
-        let headers = request.headers();
-        let authorization: Vec<_> = headers.get("Authorization").collect();
+  fn from_request(req: &HttpRequest, _: &mut dev::Payload) -> Self::Future {
+    let authorization = req.headers().get("Authorization");
 
-        if authorization.len() == 1 {
-          auth_token = Some(authorization[0].to_owned());
-        }
+    let token = match authorization {
+      Some(h) => get_token_data(h.to_str().unwrap()),
+      _ => UserToken { id: None, username: None }
+    };
 
-        let token = if auth_token.is_some() {
-          get_token_data(&auth_token.unwrap())
-        } else {
-          UserToken { id: None, username: None }
-        };
+    ok(token)
+  }
+}
 
-        Outcome::Success(token)
+pub fn get_user_id(token: UserToken) -> Result<i32, Errors> {
+  match token.id {
+    Some(id) => {
+      Ok(id)
+    },
+    None => {
+      Err(Errors {
+        status: http::StatusCode::UNAUTHORIZED,
+        errors: vec![]
+      })
     }
+  }
 }
+

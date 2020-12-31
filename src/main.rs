@@ -3,65 +3,64 @@
 #[macro_use]
 extern crate diesel;
 #[macro_use]
-extern crate rocket;
-#[macro_use]
-extern crate rocket_contrib;
-#[macro_use]
-extern crate rocket_cors;
-extern crate tokio;
+extern crate diesel_migrations;
 
-use rocket::http::Method;
-use rocket_cors::{AllowedHeaders, Error};
+use actix_cors::Cors;
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 
 mod db;
 mod user_inject;
 mod schema;
 mod models;
 mod routes;
+mod dto;
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello from vejix tasks service!"
+async fn index() -> impl Responder {
+  HttpResponse::Ok().body("KAIZEN: welcome to tasks service!")
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    let cors = rocket_cors::CorsOptions {
-        allowed_methods: vec![
-          Method::Get,
-          Method::Post,
-          Method::Delete,
-          Method::Put
-        ].into_iter().map(From::from).collect(),
-        allowed_headers: AllowedHeaders::all(),
-        allow_credentials: true,
-        ..Default::default()
-    }
-    .to_cors()?;
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+  db::init();
 
-    rocket::ignite()
-      .attach(cors)
-      .manage(db::connect())
-      .mount("/", routes![index])
-      .mount("/api/v1/tasks", routes![
-        routes::tasks::read,
-        routes::tasks::create,
-        routes::tasks::delete,
-        routes::tasks::reorder,
-        routes::tasks::update
-      ])
-      .mount("/api/v1/checklists", routes![
-        routes::checklists::read,
-        routes::checklists::create,
-        routes::checklists::update,
-        routes::checklists::delete,
-      ])
-      .mount("/api/v1/checklist-items", routes![
-        routes::checklist_items::read,
-        routes::checklist_items::create,
-        routes::checklist_items::update,
-      ])
-      .launch();
+  HttpServer::new(|| {
+    let cors = Cors::default()
+      .allow_any_origin()
+      .allow_any_method()
+      .allow_any_header()
+      .send_wildcard();
 
-    Ok(())
+      App::new()
+          .wrap(cors)
+          .data(db::connection())
+          .service(index)
+          .service(
+            web::scope("/api/v1")
+              .service(
+                web::scope("/tasks")
+                  .service(routes::tasks::read)
+                  .service(routes::tasks::create)
+                  .service(routes::tasks::delete)
+                  .service(routes::tasks::reorder)
+                  .service(routes::tasks::update)
+              )
+              .service(
+                web::scope("/checklists")
+                  .service(routes::checklists::read)
+                  .service(routes::checklists::create)
+                  .service(routes::checklists::delete)
+                  .service(routes::checklists::update)
+              )
+              .service(
+                web::scope("/checklist-items")
+                  .service(routes::checklist_items::read)
+                  .service(routes::checklist_items::create)
+                  .service(routes::checklist_items::update)
+              )
+          )
+  })
+  .bind("0.0.0.0:30083")?
+  .run()
+  .await
 }

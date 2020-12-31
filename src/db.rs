@@ -1,39 +1,33 @@
-use std::ops::Deref;
 use std::env;
-use rocket::http::Status;
-use rocket::request::{self, FromRequest};
-use rocket::{Request, State, Outcome};
 use diesel::pg::PgConnection;
 use r2d2_diesel::ConnectionManager;
 use r2d2::{Pool, PooledConnection};
+use lazy_static::lazy_static;
 
-pub type MysqlPool = Pool<ConnectionManager<PgConnection>>;
+pub type PgPool = Pool<ConnectionManager<PgConnection>>;
+pub type DbConnection = PooledConnection<ConnectionManager<PgConnection>>;
 
-pub fn connect() -> MysqlPool {
-  let database_url = env::var("DATABASE_URL").unwrap();
-  let manager = ConnectionManager::<PgConnection>::new(database_url);
-  Pool::new(manager).expect("Failed to create pool")
+embed_migrations!();
+
+lazy_static! {
+  static ref POOL: PgPool = {
+    let database_url = env::var("DATABASE_URL").unwrap();
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let pool = Pool::builder()
+      .max_size(10)
+      .min_idle(Some(5))
+      .build(manager)
+      .expect("Failed to create pool");
+  
+    pool
+  };
 }
 
-pub struct Connection(pub PooledConnection<ConnectionManager<PgConnection>>);
-
-impl<'a, 'r> FromRequest<'a, 'r> for Connection {
-    type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-        let pool = request.guard::<State<MysqlPool>>()?;
-
-        match pool.get() {
-            Ok(conn) => Outcome::Success(Connection(conn)),
-            Err(_) => Outcome::Failure((Status::ServiceUnavailable, ()))
-        }
-    }
+pub fn init() {
+  let conn = connection();
+  embedded_migrations::run(&*conn).unwrap();
 }
 
-impl Deref for Connection {
-    type Target = PgConnection;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+pub fn connection() -> DbConnection {
+  POOL.get().expect("Failed getting db connection")
 }

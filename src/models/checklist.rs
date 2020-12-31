@@ -1,9 +1,10 @@
+use serde::{Serialize, Deserialize};
 use diesel;
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
 use chrono::NaiveDateTime;
 
 use crate::schema::{checklists, checklist_items};
+use crate::db;
 
 #[derive(AsChangeset, Serialize, Deserialize, Queryable)]
 pub struct Checklist {
@@ -24,44 +25,46 @@ pub struct NewChecklist {
 }
 
 impl Checklist {
-    pub fn create(checklist: NewChecklist, connection: &PgConnection) -> Checklist {
+    pub fn create(checklist: NewChecklist) -> Result<Checklist, diesel::result::Error> {
+      let connection = db::connection();
+
       diesel::insert_into(checklists::table)
         .values(&checklist)
-        .execute(connection)
-        .expect("Error creating new checklist");
-
-        checklists::table.order(checklists::id.desc()).first(connection).unwrap()
+        .get_result(&*connection)
     }
 
-    pub fn read(user_id: i32, connection: &PgConnection) -> Vec<Checklist> {
+    pub fn read(user_id: i32) -> Result<Vec<Checklist>, diesel::result::Error> {
+      let connection = db::connection();
+
       checklists::table
         .filter(checklists::user_id.eq(user_id))
         // .order(checklists::order)
-        .load::<Checklist>(connection)
-        .unwrap()
+        .load::<Checklist>(&*connection)
     }
 
-    pub fn update(id: i32, user_id: i32, checklist: Checklist, connection: &PgConnection) -> Checklist {
-        diesel::update(
-          checklists::table.filter(checklists::user_id.eq(user_id))
-            .filter(checklists::id.eq(id))
-        )
-          .set(&checklist)
-          .execute(connection)
-          .expect("Error updating checklist");
+    pub fn update(id: i32, user_id: i32, checklist: Checklist) -> Result<Checklist, diesel::result::Error> {
+      let connection = db::connection();
 
-          Checklist::find(id, connection)
+      diesel::update(
+        checklists::table.filter(checklists::user_id.eq(user_id))
+          .filter(checklists::id.eq(id))
+      )
+        .set(&checklist)
+        .get_result(&*connection)
     }
 
-    pub fn find(id: i32, connection: &PgConnection) -> Checklist {
+    pub fn find(id: i32) -> Result<Checklist, diesel::result::Error> {
+      let connection = db::connection();
+
       checklists::table
         .find(id)
-        .first(connection)
-        .unwrap()
+        .first(&*connection)
     }
 
-    pub fn delete(id: i32, connection: &PgConnection) -> bool {
-      diesel::delete(checklists::table.find(id)).execute(connection).unwrap();
-      diesel::delete(checklist_items::table.filter(checklist_items::checklist_id.eq(id))).execute(connection).is_ok()
+    pub fn delete(id: i32) -> bool {
+      let connection = db::connection();
+      // TODO
+      diesel::delete(checklists::table.find(id)).execute(&*connection).unwrap();
+      diesel::delete(checklist_items::table.filter(checklist_items::checklist_id.eq(id))).execute(&*connection).is_ok()
     }
 }

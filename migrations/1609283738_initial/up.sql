@@ -9,6 +9,6 @@ CREATE TABLE tasks (
   updated_at timestamp NOT NULL,
   deadline timestamp DEFAULT NULL,
   tag TEXT DEFAULT NULL,
-  user_id integer NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   "order" integer NOT NULL
 );

@@ -35,7 +35,4 @@ COPY --from=build /project/target/release/tasks_service .
 
 EXPOSE 30083
 
-ENV DATABASE_URL=postgresql://postgres:postgres_admin@kaizen.cqv53ihwwu1o.us-east-1.rds.amazonaws.com:5432/kaizen_production
-ENV TOKEN_SECRET=secret
-
 CMD ["./tasks_service"]

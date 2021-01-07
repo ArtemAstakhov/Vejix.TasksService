@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kzn-tasks-svc-deploy
+spec:
+  selector:
+    matchLabels:
+      app: kzn-tasks-svc
+  template:
+    metadata:
+      labels:
+        app: kzn-tasks-svc
+    spec:
+      containers:
+        - name: tasks-svc
+          image: azuritten/vejix:tasks_service
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://postgres:postgres_admin@kaizen.cqv53ihwwu1o.us-east-1.rds.amazonaws.com:5432/kaizen_production"
+            - name: TOKEN_SECRET
+              value: "secret"
+          resources:
+            limits:
+              memory: "512M"
+              cpu: "500m"
+          ports:
+            - containerPort: 30083
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kzn-tasks-svc-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: kzn-tasks-svc
+  ports:
+    - name: tasks-svc-listener
+      protocol: TCP
+      port: 80
+      targetPort: 30083
+

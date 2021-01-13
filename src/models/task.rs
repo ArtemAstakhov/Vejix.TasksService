@@ -57,26 +57,36 @@ impl Task {
       let connection = db::connection();
 
       diesel::update(
-        tasks::table.filter(tasks::user_id.eq(user_id))
+        tasks::table
+          .filter(tasks::user_id.eq(user_id))
           .filter(tasks::id.eq(task.id))
       )
         .set(&task)
         .get_result(&*connection)
+    }
 
-      // let uncompleted_tasks: i64 = tasks::table
-      //   .filter(tasks::user_id.eq(user_id))
-      //   .filter(tasks::completed.eq(false))
-      //   .count()
-      //   .get_result(connection)
-      //   .unwrap();
+    pub fn complete(user_id: i32, task_id: i32) -> Result<Task, diesel::result::Error> {
+      let connection = db::connection();
 
-      // if uncompleted_tasks == 0 {
-      //   let mut user = User::find(user_id, connection);
-      //   let increase: i32 = 100;
+      diesel::update(
+        tasks::table
+          .filter(tasks::user_id.eq(user_id))
+          .filter(tasks::id.eq(task_id))
+      )
+        .set(tasks::completed.eq(true))
+        .get_result(&*connection)
+    }
 
-      //   user.experience = user.experience + increase;
-      //   User::update(user, connection);
-      // }
+    pub fn uncomplete(user_id: i32, task_id: i32) -> Result<Task, diesel::result::Error> {
+      let connection = db::connection();
+
+      diesel::update(
+        tasks::table
+          .filter(tasks::user_id.eq(user_id))
+          .filter(tasks::id.eq(task_id))
+      )
+        .set(tasks::completed.eq(false))
+        .get_result(&*connection)
     }
 
     pub fn find(id: i32) -> Result<Task, diesel::result::Error> {

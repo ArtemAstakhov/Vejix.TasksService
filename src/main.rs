@@ -32,33 +32,44 @@ async fn main() -> std::io::Result<()> {
       .send_wildcard();
 
       App::new()
-          .wrap(cors)
-          .data(db::connection())
-          .service(index)
-          .service(
-            web::scope("/api/v1")
-              .service(
-                web::scope("/tasks")
-                  .service(routes::tasks::read)
-                  .service(routes::tasks::create)
-                  .service(routes::tasks::delete)
-                  .service(routes::tasks::reorder)
-                  .service(routes::tasks::update)
-              )
-              .service(
-                web::scope("/checklists")
-                  .service(routes::checklists::read)
-                  .service(routes::checklists::create)
-                  .service(routes::checklists::delete)
-                  .service(routes::checklists::update)
-              )
-              .service(
-                web::scope("/checklist-items")
-                  .service(routes::checklist_items::read)
-                  .service(routes::checklist_items::create)
-                  .service(routes::checklist_items::update)
-              )
+        .wrap(cors)
+        .app_data(actix_web::web::JsonConfig::default().error_handler(|err, _req| {
+          actix_web::error::InternalError::from_response(
+            "",
+            HttpResponse::BadRequest()
+              .content_type("application/json")
+              .body(format!(r#"{{"error":"{}"}}"#, err)),
           )
+          .into()
+        }))
+        .data(db::connection())
+        .service(index)
+        .service(
+          web::scope("/api/v1")
+            .service(
+              web::scope("/tasks")
+                .service(routes::tasks::read)
+                .service(routes::tasks::create)
+                .service(routes::tasks::delete)
+                .service(routes::tasks::reorder)
+                .service(routes::tasks::update)
+                .service(routes::tasks::complete)
+                .service(routes::tasks::uncomplete)
+            )
+            .service(
+              web::scope("/checklists")
+                .service(routes::checklists::read)
+                .service(routes::checklists::create)
+                .service(routes::checklists::delete)
+                .service(routes::checklists::update)
+            )
+            .service(
+              web::scope("/checklist-items")
+                .service(routes::checklist_items::read)
+                .service(routes::checklist_items::create)
+                .service(routes::checklist_items::update)
+            )
+        )
   })
   .bind("0.0.0.0:30083")?
   .run()

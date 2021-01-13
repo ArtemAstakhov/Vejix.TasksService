@@ -110,6 +110,48 @@ pub async fn update(
   }
 }
 
+#[put("/{id}/complete")]
+pub async fn complete(
+  params: web::Path<UpdateTaskParams>,
+  user_token: user_inject::UserToken,
+) -> Result<HttpResponse, Errors> {
+  let user_id = get_user_id(user_token).unwrap();
+  let result = Task::complete(user_id, params.id);
+
+  match result {
+    Ok(task) => {
+      Ok(HttpResponse::Ok().json(task))
+    }
+    Err(_) => {
+      Err(Errors {
+        status: http::StatusCode::INTERNAL_SERVER_ERROR,
+        errors: vec![],
+      })
+    }
+  }
+}
+
+#[put("/{id}/uncomplete")]
+pub async fn uncomplete(
+  params: web::Path<UpdateTaskParams>,
+  user_token: user_inject::UserToken,
+) -> Result<HttpResponse, Errors> {
+  let user_id = get_user_id(user_token).unwrap();
+  let result = Task::uncomplete(user_id, params.id);
+
+  match result {
+    Ok(task) => {
+      Ok(HttpResponse::Ok().json(task))
+    }
+    Err(_) => {
+      Err(Errors {
+        status: http::StatusCode::INTERNAL_SERVER_ERROR,
+        errors: vec![],
+      })
+    }
+  }
+}
+
 #[derive(Deserialize)]
 pub struct DeleteTaskParams {
   id: i32,

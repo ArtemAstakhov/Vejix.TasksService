@@ -5,7 +5,6 @@ use chrono::NaiveDateTime;
 
 use crate::schema::tasks;
 use crate::db;
-// use super::user::User;
 
 #[derive(AsChangeset, Serialize, Deserialize, Queryable)]
 pub struct Task {
@@ -19,6 +18,7 @@ pub struct Task {
   pub tag: Option<String>,
   pub user_id: i32,
   pub order: i32,
+  pub task_list_id: Option<i32>,
 }
 
 #[table_name = "tasks"]
@@ -33,6 +33,7 @@ pub struct NewTask {
   pub tag: Option<String>,
   pub user_id: i32,
   pub order: i32,
+  pub task_list_id: Option<i32>,
 }
 
 impl Task {

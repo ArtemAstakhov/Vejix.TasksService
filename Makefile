@@ -3,3 +3,6 @@ export TOKEN_SECRET=secret
 
 watch:
 	cargo watch -x "run"
+
+diesel-setup:
+	diesel migration run

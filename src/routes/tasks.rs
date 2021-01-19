@@ -11,6 +11,7 @@ use crate::user_inject::{self, get_user_id};
 pub struct NewTaskPayload {
   pub title: String,
   pub order: i32,
+  pub task_list_id: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -55,6 +56,7 @@ pub async fn create(
     completed: false,
     deadline: None,
     tag: None,
+    task_list_id: task.task_list_id.clone(),
   };
   let result = Task::create(insert);
 

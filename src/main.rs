@@ -57,6 +57,13 @@ async fn main() -> std::io::Result<()> {
                 .service(routes::tasks::uncomplete)
             )
             .service(
+              web::scope("/tasks-lists")
+                .service(routes::tasks_lists::read)
+                .service(routes::tasks_lists::create)
+                .service(routes::tasks_lists::delete)
+                .service(routes::tasks_lists::update)
+            )
+            .service(
               web::scope("/checklists")
                 .service(routes::checklists::read)
                 .service(routes::checklists::create)
